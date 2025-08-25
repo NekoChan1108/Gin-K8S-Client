@@ -2,7 +2,7 @@ package main
 
 import (
 	"Gin-K8S-Client/internal/config"
-	"Gin-K8S-Client/router"
+	"Gin-K8S-Client/internal/router"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"k8s.io/klog/v2"

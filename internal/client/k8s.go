@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 )
 
+//TODO修改为单例模式
+
 func GetK8sClientSet() (*kubernetes.Clientset, error) {
 	if config, err := GetK8sConfig(); err != nil {
 		klog.Fatal("k8s.GetK8sClientSet.GetK8SConfig err: ", err.Error())

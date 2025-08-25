@@ -2,11 +2,9 @@ package service
 
 import (
 	"Gin-K8S-Client/internal/client"
-	"context"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	"sync"
 )
 
 type NamespaceSvc struct {
@@ -14,8 +12,8 @@ type NamespaceSvc struct {
 
 var (
 	namespaceSvcInstance *NamespaceSvc
-	once                 sync.Once
-	ctx                  = context.Background()
+	//once                 sync.Once
+	//ctx                  = context.Background()
 )
 
 // NewNamespaceSvc 单例加载
