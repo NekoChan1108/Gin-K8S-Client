@@ -13,11 +13,11 @@ import (
 
 func GetK8sClientSet() (*kubernetes.Clientset, error) {
 	if config, err := GetK8sConfig(); err != nil {
-		klog.Fatal("k8s.GetK8sClientSet.GetK8SConfig err: ", err.Error())
+		klog.Error("k8s.GetK8sClientSet.GetK8SConfig err: ", err.Error())
 		return &kubernetes.Clientset{}, err
 	} else {
 		if clientSet, err := kubernetes.NewForConfig(config); err != nil {
-			klog.Fatal("k8s.GetK8sClientSet.NewForConfig err: ", err.Error())
+			klog.Error("k8s.GetK8sClientSet.NewForConfig err: ", err.Error())
 			return &kubernetes.Clientset{}, err
 		} else {
 			return clientSet, nil
@@ -32,7 +32,7 @@ func GetK8sConfig() (*rest.Config, error) {
 		kubeConfig = filepath.Join(homeDir, ".kube", "config")
 	}
 	if config, err := clientcmd.BuildConfigFromFlags("", kubeConfig); err != nil {
-		klog.Fatal("k8s.GetK8sConfig.BuildConfigFromFlags err: ", err.Error())
+		klog.Error("k8s.GetK8sConfig.BuildConfigFromFlags err: ", err.Error())
 		return &rest.Config{}, err
 	} else {
 		return config, nil

@@ -27,12 +27,12 @@ func NewNamespaceSvc() *NamespaceSvc {
 func (ns *NamespaceSvc) GetNamespace() ([]v1.Namespace, error) {
 	clientSet, err := client.GetK8sClientSet()
 	if err != nil {
-		klog.Fatal("service.GetNamespace.GetK8sClientSet err: ", err.Error())
+		klog.Error("service.GetNamespace.GetK8sClientSet err: ", err.Error())
 		return []v1.Namespace{}, err
 	}
 	namespaceList, err := clientSet.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		klog.Fatal("service.GetNamespace.Namespaces().List err: ", err.Error())
+		klog.Error("service.GetNamespace.Namespaces().List err: ", err.Error())
 		return []v1.Namespace{}, err
 	}
 	return namespaceList.Items, nil

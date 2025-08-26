@@ -15,6 +15,7 @@ func InitRouter(r *gin.Engine) {
 		{
 			k8sGroup.GET("/namespace", api2.GetNamespace)
 			k8sGroup.GET("/pod", api2.GetPod)
+			k8sGroup.GET("/exec/namespace/:namespace/podName/:podName/containerName/:containerName", api2.ExecPod)
 		}
 	}
 }

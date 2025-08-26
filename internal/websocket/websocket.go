@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"k8s.io/klog/v2"
+	"net/http"
 	"sync"
 )
 
@@ -12,8 +13,8 @@ TODO
 1. 封装websocket结构 ✅
 2. 封装websocket方法(读 写) ✅
 3. 封装websocket读循环、写循环 ✅
-4. 封装web终端(WebSSH)
-5. 封装终端读、写
+4. 封装web终端(WebSSH) ✅
+5. 封装终端读、写 ✅
 */
 
 // WsMessage websocket消息结构体
@@ -40,6 +41,38 @@ type WsConnection struct {
 	lock sync.Mutex
 }
 
+// Upgrader 将http升级为websocket连接
+var wsUpgrader = &websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+// NewWsConnection 创建websocket连接
+func NewWsConnection(resp http.ResponseWriter, req *http.Request) (*WsConnection, error) {
+	var (
+		ws      *WsConnection
+		upgrade *websocket.Conn
+		err     error
+	)
+	//升级为websocket连接
+	if upgrade, err = wsUpgrader.Upgrade(resp, req, nil); err != nil {
+		klog.Error("websocket.NewWsConnection.Upgrade err: ", err.Error())
+		return nil, errors.New("websocket 协议升级失败")
+	}
+	ws = &WsConnection{
+		wsConn:    upgrade,
+		inChan:    make(chan *WsMessage, 1000),
+		outChan:   make(chan *WsMessage, 1000),
+		closeChan: make(chan byte),
+		isClosed:  false,
+	}
+	//启动读循环、写循环
+	go ws.ReadLoop()
+	go ws.WriteLoop()
+	return ws, nil
+}
+
 // ReadLoop 读循环
 func (ws *WsConnection) ReadLoop() {
 	var (
@@ -51,10 +84,10 @@ func (ws *WsConnection) ReadLoop() {
 	for {
 		//将从连接读取的消息写入inChan给ReadMsg()调用
 		if msgType, data, err = ws.wsConn.ReadMessage(); err != nil {
-			klog.Fatal("websocket.ReadLoop err: ", err.Error())
+			klog.Error("websocket.ReadLoop err: ", err.Error())
 			//报错就关闭
 			if err = ws.Close(); err != nil {
-				klog.Fatal("websocket.ReadLoop.Close err: ", err.Error())
+				klog.Error("websocket.ReadLoop.Close err: ", err.Error())
 				return
 			}
 		}
@@ -66,10 +99,10 @@ func (ws *WsConnection) ReadLoop() {
 		case ws.inChan <- msg:
 		case <-ws.inChan:
 			if ws.isClosed {
-				klog.Fatal("websocket.ReadLoop err: websocket has been closed")
+				klog.Error("websocket.ReadLoop err: websocket has been closed")
 				return
 			}
-			klog.Fatal("websocket.ReadLoop err: websocket closed")
+			klog.Error("websocket.ReadLoop err: websocket closed")
 			//关闭函数
 			goto ENDLOOP
 		}
@@ -88,18 +121,18 @@ func (ws *WsConnection) WriteLoop() {
 		select {
 		case msg = <-ws.outChan:
 			if err = ws.wsConn.WriteMessage(msg.MsgType, msg.Data); err != nil {
-				klog.Fatal("websocket.WriteLoop err: ", err.Error())
+				klog.Error("websocket.WriteLoop err: ", err.Error())
 				if err = ws.Close(); err != nil {
-					klog.Fatal("websocket.WriteLoop.Close err: ", err.Error())
+					klog.Error("websocket.WriteLoop.Close err: ", err.Error())
 					return
 				}
 			}
 		case <-ws.closeChan:
 			if ws.isClosed {
-				klog.Fatal("websocket.WriteLoop err: websocket has been closed")
+				klog.Error("websocket.WriteLoop err: websocket has been closed")
 				return
 			}
-			klog.Fatal("websocket.WriteLoop err: websocket closed")
+			klog.Error("websocket.WriteLoop err: websocket closed")
 			//关闭函数
 			goto ENDLOOP
 		}
@@ -115,7 +148,7 @@ func (ws *WsConnection) ReadMsg() (*WsMessage, error) {
 	case <-ws.closeChan:
 		//先判断是否已经关闭
 		if ws.isClosed {
-			klog.Fatal("websocket.ReadMsg err: websocket has been closed")
+			klog.Error("websocket.ReadMsg err: websocket has been closed")
 			return nil, errors.New("websocket has been closed")
 		}
 		return nil, errors.New("websocket.ReadMsg err: websocket closed")
@@ -134,7 +167,7 @@ func (ws *WsConnection) WriteMsg(msgType int, data []byte) error {
 	case <-ws.closeChan:
 		//先判断是否已经关闭
 		if ws.isClosed {
-			klog.Fatal("websocket.WriteMsg err: websocket has been closed")
+			klog.Error("websocket.WriteMsg err: websocket has been closed")
 			return errors.New("websocket has been closed")
 		}
 		return errors.New("websocket.WriteMsg err: websocket closed")
@@ -150,7 +183,7 @@ func (ws *WsConnection) Close() error {
 		ws.isClosed = true
 		close(ws.closeChan)
 		if err := ws.wsConn.Close(); err != nil {
-			klog.Fatal("websocket.Close err: ", err.Error())
+			klog.Error("websocket.Close err: ", err.Error())
 			return errors.New("websocket close error")
 		}
 	}
